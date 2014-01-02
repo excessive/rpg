@@ -1,0 +1,16 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+			"name": "RPG",
+			"folder_exclude_patterns": [
+				"assets"
+			],
+			"file_exclude_patterns": [
+				"*.sublime-workspace",
+				"game.bat", "game.sh"
+			]
+		}
+	]
+}
