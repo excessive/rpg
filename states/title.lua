@@ -1,5 +1,5 @@
 require "libs.TEsound"
-local Vector = require "libs.hump.vector"
+local Timer = require "libs.hump.timer"
 
 local title = {}
 
@@ -7,24 +7,35 @@ function title:enter(state)
 	self.current = 1
 
 	self.fading = true
-	self.fading_back = true
-	self.fade_progress = 0.0
+	self.lock_input = false
 
-	self.action = nil
 	self.actions = {
 		{ name="Play",    screen="gameplay" },
 		{ name="Options", screen="options" },
 		{ name="Exit",    screen="exit" }
 	}
+
+	self.bgm = TEsound.playLooping("assets/bgm/title.ogg")
+	TEsound.volume(self.bgm, 0.5)
+
 	self.default_font = love.graphics.getFont()
 	self.font = love.graphics.newFont("assets/fonts/roboto-regular.ttf", 28)
 	love.graphics.setFont(self.font)
+
+	self.check = love.graphics.newImage("assets/sprites/check.png")
 	self.nepgear = love.graphics.newImage("assets/sprites/nepgear.jpg")
-	self.bgm = TEsound.playLooping("assets/bgm/title.ogg")
-	TEsound.volume(self.bgm, 0.5)
 	self.spinner = love.graphics.newImage("assets/sprites/spinna.png")
 	self.spinner_spin = 0.0
-	self.check = love.graphics.newImage("assets/sprites/check.png")
+
+	self.timer = Timer.new()
+	self.fade_params = { opacity = 255 }
+	self.bgm_params = { volume = 0.5 }
+	self.timer:add(1/60, function()
+		self.timer:tween(0.25, self.fade_params, { opacity = 0 }, 'in-out-sine')
+		self.timer:add(0.25, function()
+			self.fading = false
+		end)
+	end)
 end
 
 function title:leave()
@@ -35,75 +46,58 @@ end
 
 function title:update(dt)
 	if self.fading then
-		local speed = 0.25
-		self.fade_progress = self.fade_progress + 1.0/speed * dt
-		if self.action then
-			TEsound.volume(self.bgm, 0.5 * (1.0 - self.fade_progress))
-		end
-		if self.fade_progress >= 1.0 then
-			self.fading = false
-			if not self.fading_back then
-				Gamestate.switch(self.action)
-			end
-		end
+		TEsound.volume(self.bgm, self.bgm_params.volume)
 	end
 	self.spinner_spin = self.spinner_spin + 0.25 * dt
+
+	self.timer:update(dt)
 end
 
 function title:draw()
+	local scale_factor	= love.graphics.getHeight()	/ 600
+	local screen_width	= love.graphics.getWidth()	/ scale_factor
+	local screen_height	= love.graphics.getHeight()	/ scale_factor
+
+	love.graphics.push()
+	love.graphics.scale(scale_factor, scale_factor)
+
 	local scale = 0.75
-	local nepW = (love.graphics.getWidth() / 2) - (self.nepgear:getWidth() / 2 * scale)
+	local nepW = (screen_width / 2) - (self.nepgear:getWidth() / 2 * scale)
 	love.graphics.setBackgroundColor(255, 255, 255, 100)
 	love.graphics.clear()
 	love.graphics.setColor(255, 255, 255, 100)
 	love.graphics.draw(self.nepgear, nepW, 0, 0, scale, scale)
-	
-	local width = self.spinner:getWidth()
-	local height = self.spinner:getHeight()
-	local angle = self.spinner_spin
-	
+		
 	love.graphics.push()
-	love.graphics.translate(love.graphics.getWidth()/2, love.graphics.getHeight()/2)
-	love.graphics.rotate(angle)
-	love.graphics.translate(-width/2, -height/2)
-	love.graphics.draw(self.spinner, 0, 0, 0)
+	love.graphics.translate(screen_width/2, screen_height/2)
+	love.graphics.rotate(self.spinner_spin)
+	love.graphics.translate(-self.spinner:getWidth()/2, -self.spinner:getHeight()/2)
+	love.graphics.draw(self.spinner, 0, 0)
 	love.graphics.pop()
 	
 	love.graphics.push()
-	love.graphics.translate(25, love.graphics.getHeight()/3)
+	love.graphics.translate(25, screen_height/3)
 	for i, v in ipairs(self.actions) do
 		local spacing = 30
 		love.graphics.setColor(0, 0, 0, 120)
 		if i == self.current then
-			if self.action then
-				love.graphics.setColor(255, 255, 255, 255)
-				love.graphics.push()
-				local offset = Vector(self.check:getWidth()/2, i*spacing + self.check:getHeight()/2)
-				love.graphics.translate(offset.x, offset.y)
-				love.graphics.scale(1 + self.fade_progress * 0.5, 1 + self.fade_progress * 0.5)
-				love.graphics.translate(-offset.x, -offset.y)
-				love.graphics.setColor(255, 255, 255, 255 - self.fade_progress * 255)
-				love.graphics.draw(self.check, 0, i*spacing)
-				love.graphics.pop()
-			end
 			love.graphics.setColor(0, 0, 0, 255)
 		end
 	
 		love.graphics.print(v.name, 72, i*spacing+20)
 	end
 	love.graphics.pop()
+
+	love.graphics.pop()
+
 	if self.fading then
-		local alpha = self.fade_progress * 255
-		if self.fading_back then
-			alpha = 255 - alpha
-		end
-		love.graphics.setColor(255, 255, 255, alpha)
+		love.graphics.setColor(255, 255, 255, self.fade_params.opacity)
 		love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 	end
 end
 
 function title:keypressed(key, unicode)
-	if self.action then return end
+	if self.lock_input then return end
 	if key == "up" then
 		self.current = self.current - 1
 		if self.current < 1 then
@@ -116,10 +110,13 @@ function title:keypressed(key, unicode)
 	if key == "return" then
 		local action = self.actions[self.current]
 		if action then
+			self.lock_input = true
 			self.fading = true
-			self.fading_back = false
-			self.fade_progress = 0.0
-			self.action = require("states."..action.screen)
+			self.timer:tween(0.25, self.fade_params, { opacity = 255 }, 'in-out-sine')
+			self.timer:tween(0.25, self.bgm_params, { volume = 0.0 })
+			self.timer:add(0.25, function()
+				Gamestate.switch(require("states."..action.screen))
+			end)
 		end
 	end
 end

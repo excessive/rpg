@@ -9,9 +9,8 @@ function Character:init(character, pos)
 	Entity.init(self, character, pos)
 
 	self.velocity		= Vector(0, 0)
-	self.attacking		= false
-	self.attack_time	= -1
-	self.attack_length	= 0.5
+	self.attack_cooldown = 1.0
+	self.cooldown		= false
 	self.show_tile		= false
 	self.in_range		= false
 	self.width			= 1
@@ -19,7 +18,6 @@ function Character:init(character, pos)
 	self.level			= 1
 	self.exp			= 0 -- exp in current level
 	self.dead			= false
-	self.died_at		= 0
 	self.base_stats		= {
 		hp		= 10,
 		attack	= 1,
@@ -33,8 +31,10 @@ function Character:init(character, pos)
 	self.stats 			= {} -- stat cache
 end
 
-function Character:hit(attack)
-	if self.dead then return 0 end
+function Character:hit(attacker)
+	if self.dead then return end
+
+	local attack = attacker.stats.attack
 
 	print( ("hit %s for %d hp"):format(self.name, attack))
 
@@ -43,21 +43,43 @@ function Character:hit(attack)
 	if self.hp <= 0 then
 		print(("killed %s for %d exp"):format(self.name, self.stats.exp))
 		self.dead = true
-		self.died_at = love.timer.getTime()
-		return self.stats.exp
+		attacker.exp = attacker.exp + self.stats.exp
+		attacker:update_stats()
 	end
-
-	return 0
 end
 
 function Character:attack()
-	if love.timer.getTime() - self.attack_time > 1 then
-		self.attacking = true
-		self.attack_time = love.timer.getTime()
-		return true
+	if self.cooldown then return false end
+
+	self.cooldown = true
+	
+	local facing = self.facing
+	
+	if self.facing:find("move") then
+		self.facing = self.facing:sub(1, self.facing:len()-4)
+	end
+	self.facing = self.facing .. "swing"
+
+	if self.equipment and self.equipment.weapon then
+		self.equipment.weapon.facing = self.facing
+		self.equipment.weapon:resume()
 	end
 	
-	return false
+	if facing ~= self.facing then
+		self.sprites[facing]:pauseAtStart()
+		
+		if self.equipment and self.equipment.weapon then
+			self.equipment.weapon.sprites[facing]:pauseAtStart()
+		end
+	end
+	
+	self:resume()
+	
+	self.timer:add(self.attack_cooldown, function()
+		self.cooldown = false
+	end)
+
+	return true
 end
 
 function Character:equip_item(slot, item)
@@ -98,6 +120,36 @@ end
 
 -- in tiles/second
 function Character:move(pos, collision)
+	if self.dead then return end
+	
+	local facing = self.facing
+	
+	if pos.x > 0 then
+		self.facing = "rightmove"
+	elseif pos.x < 0 then
+		self.facing = "leftmove"
+	elseif pos.y > 0 then
+		self.facing = "downmove"
+	elseif pos.y < 0 then
+		self.facing = "upmove"
+	end
+
+	if pos.x == 0 and pos.y == 0 then
+		if self.facing:find("move") then
+			self.facing = self.facing:sub(1, self.facing:len()-4)
+		end
+	end
+	
+	if facing ~= self.facing then
+		self.sprites[facing]:pauseAtStart()
+		self:resume()
+		
+		if self.equipment and self.equipment.weapon then
+			self.equipment.weapon.sprites[facing]:pauseAtStart()
+			self.equipment.weapon:resume()
+		end
+	end
+	
 	local old = self.position:clone()
 	self.position = self.position + pos * 32
 
@@ -113,22 +165,6 @@ function Character:move(pos, collision)
 end
 
 function Character:update(dt)
-	if self.attacking then
-		if self.facing:find("right") then
-			self.facing = "rightswing"
-		elseif self.facing:find("left") then
-			self.facing = "leftswing"
-		elseif self.facing:find("down") then
-			self.facing = "downswing"
-		elseif self.facing:find("up") then
-			self.facing = "upswing"
-		end
-
-		if love.timer.getTime() - self.attack_time > self.attack_length then
-			self.attacking = false
-		end
-	end
-
 	if self.equipment and self.equipment.weapon then
 		self.equipment.weapon.facing = self.facing
 		self.equipment.weapon:update(dt)

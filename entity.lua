@@ -1,5 +1,5 @@
-require "libs.AnAL"
 local Class = require "libs.hump.class"
+local Timer = require "libs.hump.timer"
 local Vector = require "libs.hump.vector"
 
 Entity = Class {}
@@ -13,6 +13,7 @@ function Entity:init(entity, pos)
 	self.position		= pos:clone() * 32
 	self.facing			= "down"
 	self.sprites		= {}
+	self.timer			= Timer.new()
 end
 
 function Entity:closest_tile()
@@ -23,7 +24,8 @@ function Entity:closest_tile()
 end
 
 function Entity:update(dt)
-	self.sprites[self.facing].image:update(dt)
+	self.sprites[self.facing]:update(dt)
+	self.timer:update(dt)
 end
 
 function Entity:draw()
@@ -31,59 +33,26 @@ function Entity:draw()
 		local nearest = self:closest_tile()
 		love.graphics.rectangle("line", nearest.x, nearest.y, 32, 32)
 	end
-	local v = Vector(
-		math.floor(self.position.x + self.offset.x),
-		math.floor(self.position.y + self.offset.y)
-	)
-	self.sprites[self.facing].image:draw(v.x, v.y)
-end
-
-function Entity:drawReverseX()
-	if self.show_tile then
-		local nearest = self:closest_tile()
-		love.graphics.rectangle("line", nearest.x, nearest.y, 32, 32)
-	end
-	local v = Vector(
-		math.floor(self.position.x + self.offset.x),
-		math.floor(self.position.y + self.offset.y)
-	)
-	self.sprites[self.facing].image:draw(v.x, v.y, 0, -1, 1, self.sprites[self.facing].width, 0)
-end
-
-function Entity:drawReverseY()
-	if self.show_tile then
-		local nearest = self:closest_tile()
-		love.graphics.rectangle("line", nearest.x, nearest.y, 32, 32)
-	end
-	local v = Vector(
-		math.floor(self.position.x + self.offset.x),
-		math.floor(self.position.y + self.offset.y)
-	)
-	self.sprites[self.facing].image:draw(v.x, v.y, 0, 1, -1, 0, self.sprites[self.facing].height)
-end
-
---[[
-	New Sprites
 	
-	name	- Name of sprite
-	img		- Spritemap
-	w		- Sprite width
-	h		- Sprite height
-	ox		- Frame Offset: X
-	oy		- Frame Offset: Y
-	f		- Number of frames
-	ft		- Time to display each frame (in seconds)
-]]--
-function Entity:newSprite(name, img, w, h, ox, oy, f, ft)
-	local a = newAnimation(img, w, h, ft, 1)
-	a.frames = {}
-
-	for i = 0, f - 1 do
-		a:addFrame(i * w + ox * w, oy * h, w, h, ft)
+	local pos = Vector(
+		math.floor(self.position.x + self.offset.x),
+		math.floor(self.position.y + self.offset.y)
+	)
+	
+	if self.facing == "drop" then
+		self.sprites[self.facing]:draw(self.drop, pos.x, pos.y)
+	else
+		self.sprites[self.facing]:draw(self.image, pos.x, pos.y)
 	end
+end
 
-	self.sprites[name] = {}
-	self.sprites[name].image	= a
-	self.sprites[name].width	= w
-	self.sprites[name].height	= h
+function Entity:reset()
+	self.sprites[self.facing]:pauseAtStart()
+	self.facing = self.facing:sub(1, self.facing:len()-5)
+	
+	self:resume()
+end
+
+function Entity:resume()
+	self.sprites[self.facing]:resume()
 end

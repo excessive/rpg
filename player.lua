@@ -1,6 +1,7 @@
 require "character"
 local Class = require "libs.hump.class"
 local Vector = require "libs.hump.vector"
+local anim8 = require "libs.anim8"
 
 Player = Class {}
 Player:include(Character)
@@ -45,19 +46,22 @@ function Player:init(image, pos)
 	self:update_stats()
 	self.hp				= self.stats.hp
 
-	self.facing			= "down"
-	self:newSprite("rightswing",	self.image, 64, 64, 0, 0, 5, 0.1)
-	self:newSprite("rightmove",		self.image, 64, 64, 0, 1, 4, 0.2)
-	self:newSprite("right",			self.image, 64, 64, 0, 2, 2, 0.5)
-	self:newSprite("leftswing",		self.image, 64, 64, 0, 0, 5, 0.1)
-	self:newSprite("leftmove",		self.image, 64, 64, 0, 1, 4, 0.2)
-	self:newSprite("left",			self.image, 64, 64, 0, 2, 2, 0.5)
-	self:newSprite("upswing",		self.image, 64, 64, 0, 3, 5, 0.1)
-	self:newSprite("upmove",		self.image, 64, 64, 0, 4, 4, 0.2)
-	self:newSprite("up",			self.image, 64, 64, 0, 5, 2, 0.5)
-	self:newSprite("downswing",		self.image, 64, 64, 0, 6, 5, 0.1)
-	self:newSprite("downmove",		self.image, 64, 64, 0, 7, 4, 0.2)
-	self:newSprite("down",			self.image, 64, 64, 0, 8, 2, 0.5)
+	local g = anim8.newGrid(64, 64, self.image:getWidth(), self.image:getHeight())
+	
+	self.sprites = {
+		rightswing	= anim8.newAnimation(g('1-5',1), 0.1, function() self:reset() end),
+		rightmove	= anim8.newAnimation(g('1-4',2), 0.2),
+		right		= anim8.newAnimation(g('1-2',3), 0.5),
+		leftswing	= anim8.newAnimation(g('1-5',1), 0.1, function() self:reset() end):flipH(),
+		leftmove	= anim8.newAnimation(g('1-4',2), 0.2):flipH(),
+		left		= anim8.newAnimation(g('1-2',3), 0.5):flipH(),
+		upswing		= anim8.newAnimation(g('1-5',4), 0.1, function() self:reset() end),
+		upmove		= anim8.newAnimation(g('1-4',5), 0.2),
+		up			= anim8.newAnimation(g('1-2',6), 0.5),
+		downswing	= anim8.newAnimation(g('1-5',7), 0.1, function() self:reset() end),
+		downmove	= anim8.newAnimation(g('1-4',8), 0.2),
+		down		= anim8.newAnimation(g('1-2',9), 0.5),
+	}
 end
 
 function Player:update_stats()
@@ -69,43 +73,11 @@ function Player:update_stats()
 	end
 end
 
-function Player:move(pos, collision)
-	if self.dead then return end
-
-	Character.move(self, pos, collision)
-
-	if pos.x > 0 then
-		self.facing = "rightmove"
-	elseif pos.x < 0 then
-		self.facing = "leftmove"
-	elseif pos.y > 0 then
-		self.facing = "downmove"
-	elseif pos.y < 0 then
-		self.facing = "upmove"
-	end
-
-	if pos.x == 0 and pos.y == 0 then
-		if self.facing:find("right") then
-			self.facing = "right"
-		elseif self.facing:find("left") then
-			self.facing = "left"
-		elseif self.facing:find("down") then
-			self.facing = "down"
-		elseif self.facing:find("up") then
-			self.facing = "up"
-		end
-	end
-end
-
-function Player:update(dt)
-	Character.update(self, dt)
-end
-
 function Player:draw()
 	love.graphics.push()
 	love.graphics.translate(
 		self.position.x + self.offset.x,
-		self.position.y + self.offset.y + self.sprites[self.facing].image.fh
+		self.position.y + self.offset.y --+ self.sprites[self.facing].image.fh
 	)
 	love.graphics.scale(1, 0.5)
 	love.graphics.setColor(0, 0, 0, 50)
@@ -113,11 +85,7 @@ function Player:draw()
 	love.graphics.setColor(255, 255, 255, 255)
 	love.graphics.pop()
 
-	if self.facing:find("left") then
-		Character.drawReverseX(self)
-	else
-		Character.draw(self)
-	end
+	Character.draw(self)
 
 	if self.equipment and self.equipment.weapon then
 		self.equipment.weapon.position = self.position

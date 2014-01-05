@@ -1,23 +1,24 @@
-require "player"
-require "enemy"
-require "npc"
-require "item"
-require "terrain"
 require "db.font"
-require "db.enemy"
-require "db.npc"
-require "db.item"
-require "db.terrain"
+local Timer = require "libs.hump.timer"
 local Vector = require "libs.hump.vector"
 
 local gameplay = {}
 
 function gameplay:enter(state)
-	-- Colby's fading nonsense
-	self.fading = true
-	self.fading_back = false
-	self.fade_progress = 0.0
-
+	--[[
+	Signal.register("death", somefunc())
+	Signal.register("kill", somefunc())
+	Signal.register("move", somefunc())
+	Signal.register("interact", somefunc()) -- generic interaction with entities
+	Signal.register("attack", somefunc())
+	Signal.register("pickup", somefunc()) -- emit from interact
+	Signal.register("talk", somefunc()) -- emit from interact
+	Signal.register("collision", somefunc())
+	Signal.register("konami", somefunc()) -- max 300 step chart
+	Signal.register("input", somefunc())
+	Signal.register("death", somefunc())
+	]]--
+	
 	-- Map stuff
 	local function createCollisionMap(map, layer)
 		local w, h = map.width-1, map.height-1
@@ -50,97 +51,29 @@ function gameplay:enter(state)
 	end
 
 	-- On-screen objects
-	self.objects = {
-		player	= Player("assets/browserquest/goldenarmor.png", Vector(41, 58)),
-		enemies	= {
-			Enemy(EnemyDB.jeff,		Vector(38, 34)),
-			Enemy(EnemyDB.kevin,	Vector(22, 10)),
-			Enemy(EnemyDB.kevin,	Vector(23, 10)),
-			Enemy(EnemyDB.kevin,	Vector(30, 10)),
-			Enemy(EnemyDB.kevin,	Vector(31, 10)),
-			Enemy(EnemyDB.kevin,	Vector(38, 10)),
-			Enemy(EnemyDB.kevin,	Vector(39, 10)),
-		},
-		npcs	= {
-			NPC(NPCDB.smith,	Vector(10, 58)),
-			NPC(NPCDB.priest,	Vector(5, 36)),
-			NPC(NPCDB.dead,		Vector(2, 34)),
-			NPC(NPCDB.dead,		Vector(4, 34)),
-			NPC(NPCDB.dead,		Vector(6, 34)),
-			NPC(NPCDB.dead,		Vector(8, 34)),
-			NPC(NPCDB.dead,		Vector(2, 38)),
-			NPC(NPCDB.dead,		Vector(4, 38)),
-			NPC(NPCDB.dead,		Vector(6, 38)),
-			NPC(NPCDB.dead,		Vector(8, 38)),
-		},
-		items	= {
-			Item(ItemDB.sword,	Vector(30, 54)),
-		},
-		terrain	= {
-			Terrain(TerrainDB.house1,	Vector(19, 2)),
-			Terrain(TerrainDB.house2,	Vector(27, 1)),
-			Terrain(TerrainDB.house3,	Vector(35, 1)),
-			Terrain(TerrainDB.tree1,	Vector(17, 8)),
-			Terrain(TerrainDB.tree1,	Vector(25, 8)),
-			Terrain(TerrainDB.tree1,	Vector(33, 8)),
-			Terrain(TerrainDB.tree1,	Vector(41, 8)),
-			Terrain(TerrainDB.well1,	Vector(37, 30)),
-			Terrain(TerrainDB.rock3,	Vector(28, 51)),
-			Terrain(TerrainDB.rock4,	Vector(32, 51)),
-			Terrain(TerrainDB.grave1,	Vector(2, 32)),
-			Terrain(TerrainDB.grave1,	Vector(4, 32)),
-			Terrain(TerrainDB.grave1,	Vector(6, 32)),
-			Terrain(TerrainDB.grave1,	Vector(8, 32)),
-			Terrain(TerrainDB.grave1,	Vector(2, 36)),
-			Terrain(TerrainDB.grave2,	Vector(4, 36)),
-			Terrain(TerrainDB.grave1,	Vector(6, 36)),
-			Terrain(TerrainDB.grave1,	Vector(8, 36)),
-			Terrain(TerrainDB.tent1,	Vector(40, 54)),
-		},
-	}
-
+	self.objects = require "assets.maps.test03"
 	self.objects_sorted = {}
 
 	self.show_debug_overlay = true
 	self.show_hitboxes = false
 
-	local Grid = require "libs.jumper.grid"
-	local Pathfinder = require "libs.jumper.pathfinder"
-	local map = {
-		{0,1,0,1,0},
-		{0,1,0,1,0},
-		{0,1,1,1,0},
-		{0,0,0,0,0},
-	}
-	local walkable = 0
-	local grid = Grid(map)
-	local myFinder = Pathfinder(grid, "JPS", walkable)
-	local start = Vector(1,1)
-	local finish = Vector(5,1)
-	local path = myFinder:getPath(start.x, start.y, finish.x, finish.y)
+	self.fading = true
+	self.lock_input = false
 
-	if path then
-		print(("Path found! Length: %.2f"):format(path:getLength()))
-		for node, count in path:nodes() do
-			print(("Step: %d - x: %d - y: %d"):format(count, node:getX(), node:getY()))
-		end
-	end
+	self.timer = Timer.new()
+	self.fade_params = { opacity = 255 }
+
+	-- HACK: loading time botches the timer, but we want to see the fade!
+	self.timer:add(1/60, function()
+		self.timer:tween(0.25, self.fade_params, { opacity = 0 }, 'in-out-sine')
+		self.timer:add(0.25, function()
+			self.fading = false
+		end)
+	end)
 end
 
 function gameplay:update(dt)
-	-- fade overlay
 	local speed = 5.0
-
-	if self.fading then
-		local speed = 0.25
-		self.fade_progress = self.fade_progress + 1.0/speed * dt
-		if self.fade_progress >= 1.0 then
-			self.fading = false
-			if self.fading_back then
-				Gamestate.switch(require "states.title")
-			end
-		end
-	end
 
 	-- Shortcuts!
 	local o			= self.objects
@@ -227,17 +160,18 @@ function gameplay:update(dt)
 	-- TODO: directional hits
 	if pressed " " and o.player:attack() then
 		for k, v in pairs(enemies) do
-			o.player.exp = o.player.exp + v:hit(o.player.stats.attack)
-			o.player:update_stats()
-		end
-	end
-
-	for k, v in pairs(o.enemies) do
-		if v.dead and love.timer.getTime() - v.died_at > 1.0 then
-			local position = o.enemies[k].position
-			collision[position.y/32][position.x/32] = 0
-			o.enemies[k] = nil
-			print "Goodbye, my friend."
+			if not v.dead then
+				v:hit(o.player)
+				if v.dead then
+					self.timer:add(1.0, function()
+						-- I CAN NEST FOREVER
+						local position = o.enemies[k].position
+						collision[position.y/32][position.x/32] = 0
+						o.enemies[k] = nil
+						print "Goodbye, my friend."
+					end)
+				end
+			end
 		end
 	end
 
@@ -266,6 +200,8 @@ function gameplay:update(dt)
 	end
 
 	self.objects_sorted = objects
+
+	self.timer:update(dt)
 end
 
 function clamp(num, low, high)
@@ -276,18 +212,22 @@ function gameplay:draw()
 	-- Link Players to Sprites Layer
 	self.map.layers.Sprites.objects = self.objects_sorted
 
-	local size = Vector(love.graphics.getWidth(), love.graphics.getHeight() - 64)
-	local player = self.objects.player
-
+	local scale_factor	= love.graphics.getHeight()	/ 600
+	local screen_width	= love.graphics.getWidth()	/ scale_factor
+	local screen_height	= love.graphics.getHeight()	/ scale_factor
+	local size			= Vector(screen_width, screen_height)
+	local player		= self.objects.player
+	
 	-- Draw World + Entities
 	love.graphics.push()
+	love.graphics.scale(scale_factor, scale_factor)
 	love.graphics.setColor(255, 255, 255, 255)
 	local tx = math.floor(player.position.x - size.x / 2)
 	local ty = math.floor(player.position.y - size.y / 2)
 	tx = -clamp(tx, 0, self.map.width * self.map.tileWidth - size.x)
 	ty = -clamp(ty, 0, self.map.height * self.map.tileHeight - size.y)
-	love.graphics.translate(tx, ty + 32)
-	self.map:setDrawRange(-tx, -ty, love.graphics.getWidth(), love.graphics.getHeight() - 64)
+	love.graphics.translate(tx, ty)
+	self.map:setDrawRange(-tx, -ty, screen_width, screen_height)
 	self.map:draw()
 
 	if self.show_hitboxes then
@@ -304,7 +244,39 @@ function gameplay:draw()
 
 	love.graphics.setColor(255,255,255,255)
 	love.graphics.pop()
+	
+	-- repositioned to get a clearer view of what needs to be signalified
+	self:draw_gui()
 
+	-- overlay fade
+	if self.fading then
+		love.graphics.setColor(255, 255, 255, self.fade_params.opacity)
+		love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+	end
+end
+
+function gameplay:keypressed(key, unicode)
+	if key == "f3" then
+		self.show_debug_overlay = not self.show_debug_overlay
+	end
+	
+	if key == "h" then
+		self.show_hitboxes = not self.show_hitboxes
+	end
+	
+	if key == "escape" then
+		self.lock_input = true
+		self.fading = true
+		self.timer:tween(0.25, self.fade_params, { opacity = 255 }, 'in-out-sine')
+		self.timer:add(0.25, function()
+			Gamestate.switch(require("states.title"))
+		end)
+	end
+end
+
+function gameplay:draw_gui()
+	local player = self.objects.player
+	
 	-- gui
 	love.graphics.setColor(255, 255, 255, 255)
 	love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), 32)
@@ -350,30 +322,6 @@ function gameplay:draw()
 
 	love.graphics.setColor(0, 0, 0, 255)
 	love.graphics.print("F3: Toggle Debug Menu", love.graphics.getWidth() - 256, 8)
-
-	-- overlay fade
-	if self.fading then
-		local alpha = self.fade_progress * 255
-		if not self.fading_back then
-			alpha = 255 - alpha
-		end
-		love.graphics.setColor(255, 255, 255, alpha)
-		love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
-	end
-end
-
-function gameplay:keypressed(key, unicode)
-	if key == "f3" then
-		self.show_debug_overlay = not self.show_debug_overlay
-	end
-	if key == "h" then
-		self.show_hitboxes = not self.show_hitboxes
-	end
-	if key == "escape" then
-		self.fading = true
-		self.fading_back = true
-		self.fade_progress = 0.0
-	end
 end
 
 return gameplay

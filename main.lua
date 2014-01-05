@@ -1,4 +1,5 @@
 Gamestate = require "libs.hump.gamestate"
+Signal = require "libs.hump.signal"
 
 function love.load()
 	local title = require "states.title"
