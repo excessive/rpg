@@ -14,14 +14,13 @@ function NPC:init(npc, pos)
 	self.sprites = {
 		down = anim8.newAnimation(g(1,1), 0.5)
 	}
-	--self:newSprite("down",	self.image, 50, 48, 0, 0, 2, 0.5)
 	self.shadow_offset = npc.shadow_offset or Vector(0, 0)
 end
 
 function NPC:draw()
 	local position = self.position + self.offset + self.shadow_offset
---	position.x = position.x + 32 - 6
---	position.y = position.y + self.sprites[self.facing].image.fh + 6
+	position.x = position.x + 32 - 6 - 2
+	position.y = position.y + 48 + 6
 
 	love.graphics.push()
 	love.graphics.translate(position.x, position.y)

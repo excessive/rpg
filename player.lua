@@ -77,7 +77,7 @@ function Player:draw()
 	love.graphics.push()
 	love.graphics.translate(
 		self.position.x + self.offset.x,
-		self.position.y + self.offset.y --+ self.sprites[self.facing].image.fh
+		self.position.y + self.offset.y + 64
 	)
 	love.graphics.scale(1, 0.5)
 	love.graphics.setColor(0, 0, 0, 50)

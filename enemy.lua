@@ -44,8 +44,8 @@ end
 
 function Enemy:draw()
 	local position = self.position + self.offset
-	--position.x = position.x + 32
-	--position.y = position.y + self.sprites[self.facing].image.fh
+	position.x = position.x + 32
+	position.y = position.y + 64
 
 	love.graphics.push()
 	love.graphics.translate(position.x, position.y)
