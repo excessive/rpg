@@ -4,13 +4,15 @@ local Vector = require "libs.hump.vector"
 
 Entity = Class {}
 
-function Entity:init(entity, pos)
+function Entity:init(entity)
 	self.name			= entity.name
-	self.image			= love.graphics.newImage(entity.image)
+	self.image			= love.graphics.newImage(entity.imagelocation)
+	self.imagelocation	= entity.imagelocation
 	self.offset			= entity.offset
 	self.hitbox_start	= entity.hitbox_start
 	self.hitbox_end		= entity.hitbox_end
-	self.position		= pos:clone() * 32
+	self.locked			= false
+	self.position		= entity.pos:clone() * 32
 	self.facing			= "down"
 	self.sprites		= {}
 	self.timer			= Timer.new()
@@ -49,6 +51,7 @@ end
 function Entity:reset()
 	self.sprites[self.facing]:pauseAtStart()
 	self.facing = self.facing:sub(1, self.facing:len()-5)
+	self.locked = false
 	
 	self:resume()
 end

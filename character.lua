@@ -5,8 +5,8 @@ local Vector = require "libs.hump.vector"
 Character = Class {}
 Character:include(Entity)
 
-function Character:init(character, pos)
-	Entity.init(self, character, pos)
+function Character:init(character)
+	Entity.init(self, character)
 
 	self.velocity		= Vector(0, 0)
 	self.attack_cooldown = 1.0
@@ -52,6 +52,7 @@ function Character:attack()
 	if self.cooldown then return false end
 
 	self.cooldown = true
+	self.locked = true
 	
 	local facing = self.facing
 	
@@ -120,7 +121,7 @@ end
 
 -- in tiles/second
 function Character:move(pos, collision)
-	if self.dead then return end
+	if self.dead or self.locked then return end
 	
 	local facing = self.facing
 	
@@ -154,9 +155,10 @@ function Character:move(pos, collision)
 	self.position = self.position + pos * 32
 
 	local closest = self:closest_tile() / 32
-
+	local ey, ex = #collision-1, #collision[1]-1
+	
 	if	closest.x < 0 or closest.y < 0 or
-		closest.x > collision.width or closest.y > collision.height or
+		closest.x > ex or closest.y > ey or
 		collision[closest.y][closest.x] == 1 or
 		collision[closest.y][closest.x] == nil
 	then

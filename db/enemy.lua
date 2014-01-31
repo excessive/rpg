@@ -4,7 +4,7 @@ local Vector = require "libs.hump.vector"
 EnemyDB = {
 	jeff = {
 		name			= "Jeff",
-		image			= "assets/browserquest/mailarmor.png",
+		imagelocation	= "assets/browserquest/mailarmor.png",
 		level			= 1,
 		equipment		= {
 			weapon	= ItemDB.red_sword,
@@ -26,7 +26,7 @@ EnemyDB = {
 	},
 	kevin = {
 		name			= "Kevin",
-		image			= "assets/browserquest/platearmor.png",
+		imagelocation	= "assets/browserquest/platearmor.png",
 		level			= 99,
 		equipment		= {
 			weapon	= ItemDB.red_sword,

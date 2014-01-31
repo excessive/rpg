@@ -7,7 +7,9 @@ NPC = Class {}
 NPC:include(Character)
 
 function NPC:init(npc, pos)
-	Character.init(self, npc, pos)
+	npc.pos = pos
+	
+	Character.init(self, npc)
 
 	local g = anim8.newGrid(48, 48, self.image:getWidth(), self.image:getHeight())
 	

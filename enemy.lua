@@ -9,7 +9,9 @@ Enemy = Class {}
 Enemy:include(Character)
 
 function Enemy:init(enemy, pos)
-	Character.init(self, enemy, pos)
+	enemy.pos = pos
+	
+	Character.init(self, enemy)
 	
 	self.level			= enemy.level
 	self.base_stats		= enemy.base_stats

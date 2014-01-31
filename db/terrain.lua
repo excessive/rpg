@@ -3,7 +3,7 @@ local Vector = require "libs.hump.vector"
 TerrainDB = {
 	house1 = {
 		name			= "house1",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(0, 1),
 		["end"]			= Vector(7, 8),
@@ -12,7 +12,7 @@ TerrainDB = {
 	},
 	house2 = {
 		name			= "house2",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(8, 0),
 		["end"]			= Vector(15, 8),
@@ -21,7 +21,7 @@ TerrainDB = {
 	},
 	house3 = {
 		name			= "house3",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(16, 0),
 		["end"]			= Vector(23, 8),
@@ -30,7 +30,7 @@ TerrainDB = {
 	},
 	rock1 = {
 		name			= "rock1",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(28, 5),
 		["end"]			= Vector(30, 8),
@@ -39,7 +39,7 @@ TerrainDB = {
 	},
 	rock2 = {
 		name			= "rock2",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(28, 9),
 		["end"]			= Vector(30, 12),
@@ -48,7 +48,7 @@ TerrainDB = {
 	},
 	rock3 = {
 		name			= "rock3",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(28, 15),
 		["end"]			= Vector(29, 16),
@@ -57,7 +57,7 @@ TerrainDB = {
 	},
 	rock4 = {
 		name			= "rock4",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(30, 15),
 		["end"]			= Vector(31, 16),
@@ -66,7 +66,7 @@ TerrainDB = {
 	},
 	tree1 = {
 		name			= "tree1",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(28, 0),
 		["end"]			= Vector(31, 4),
@@ -75,7 +75,7 @@ TerrainDB = {
 	},
 	well1 = {
 		name			= "well1",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(24, 0),
 		["end"]			= Vector(26, 3),
@@ -84,7 +84,7 @@ TerrainDB = {
 	},
 	tent1 = {
 		name			= "tent1",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(24, 4),
 		["end"]			= Vector(26, 7),
@@ -93,7 +93,7 @@ TerrainDB = {
 	},
 	grave1 = {
 		name			= "grave1",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(10, 9),
 		["end"]			= Vector(11, 10),
@@ -102,7 +102,7 @@ TerrainDB = {
 	},
 	grave2 = {
 		name			= "grave2",
-		image			= "assets/sprites/objects.png",
+		imagelocation	= "assets/sprites/objects.png",
 		offset			= Vector(0, 0),
 		start			= Vector(8, 9),
 		["end"]			= Vector(9, 10),

@@ -1,5 +1,7 @@
 require "libs.TEsound"
 local Timer = require "libs.hump.timer"
+local Vector = require "libs.hump.vector"
+local json = require "libs.dkjson"
 
 local title = {}
 
@@ -36,6 +38,42 @@ function title:enter(state)
 			self.fading = false
 		end)
 	end)
+	
+	-- filesystem WIP
+	if love.filesystem.exists("save01") then
+		self.save = love.filesystem.read("save01")
+		self.save = json.decode(self.save)
+		self.save.pos = Vector(self.save.pos.x, self.save.pos.y)
+		-- need to revector all vector objects
+	else
+		self.save = {
+			name			= "Nepgear",
+			imagelocation	= "assets/browserquest/goldenarmor.png",
+			offset			= Vector(-16, -24),
+			hitbox_start	= Vector(0, 0),
+			hitbox_end		= Vector(0, 0),
+			pos				= Vector(41, 58),
+			level			= 1,
+			attack_range	= 1,
+			use_range		= 1.5,
+			base_stats		= {
+				hp		= 10,
+				attack	= 1,
+				exp		= 20,
+			},
+			aptitudes		= {
+				hp		= 1.2,
+				attack	= 1.5,
+				exp		= 2.0,
+			},
+			inventory		= {},
+			equipment		= {
+				weapon	= nil,
+			},
+		}
+		
+		love.filesystem.write("save01", json.encode(self.save))
+	end
 end
 
 function title:leave()
@@ -115,7 +153,7 @@ function title:keypressed(key, unicode)
 			self.timer:tween(0.25, self.fade_params, { opacity = 255 }, 'in-out-sine')
 			self.timer:tween(0.25, self.bgm_params, { volume = 0.0 })
 			self.timer:add(0.25, function()
-				Gamestate.switch(require("states."..action.screen))
+				Gamestate.switch(require("states."..action.screen), self.save)
 			end)
 		end
 	end

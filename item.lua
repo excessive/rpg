@@ -7,9 +7,12 @@ Item = Class {}
 Item:include(Entity)
 
 function Item:init(item, pos)
-	Entity.init(self, item, pos)
+	item.pos = pos
+	
+	Entity.init(self, item)
 
-	self.drop			= love.graphics.newImage(item.drop)
+	self.drop			= love.graphics.newImage(item.droplocation)
+	self.droplocation	= item.droplocation
 	self.type			= item.type
 	self.req_level		= item.req_level
 	self.stats			= item.stats

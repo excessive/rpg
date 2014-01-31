@@ -6,7 +6,9 @@ Terrain = Class {}
 Terrain:include(Entity)
 
 function Terrain:init(terrain, pos)
-	Entity.init(self, terrain, pos)
+	terrain.pos = pos
+	
+	Entity.init(self, terrain)
 	
 	self.start			= terrain.start
 	self["end"]			= terrain["end"]

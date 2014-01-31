@@ -1,10 +1,14 @@
+require "player"
 require "db.font"
+require "db.item"
 local Timer = require "libs.hump.timer"
 local Vector = require "libs.hump.vector"
+local json = require "libs.dkjson"
+local sti = require "libs.sti"
 
 local gameplay = {}
 
-function gameplay:enter(state)
+function gameplay:enter(state, player)
 	--[[
 	Signal.register("death", somefunc())
 	Signal.register("kill", somefunc())
@@ -19,31 +23,12 @@ function gameplay:enter(state)
 	Signal.register("death", somefunc())
 	]]--
 	
-	-- Map stuff
-	local function createCollisionMap(map, layer)
-		local w, h = map.width-1, map.height-1
-		local walk = {}
-		for y=0, h do
-			walk[y] = {}
-			for x=0, w do
-				walk[y][x] = 0
-			end
-		end
-		for x, y, tile in map.layers[layer]:iterate() do
-			walk[y][x] = 1
-		end
-		return walk
-	end
-
-	local loader = require "libs.ATL.Loader"
-	loader.path = "assets/maps/"
-	self.map = loader.load("test03.tmx")
-	self.collisionMap = createCollisionMap(self.map, "Collision")
-	self.collisionMap.width = self.map.width
-	self.collisionMap.height = self.map.height-1
+	self.map = sti.new("assets/maps/test")
+	self.map:setCollisionMap("Collision")
 
 	-- Custom Layer for Sprite Objects
-	local spriteLayer = self.map:newCustomLayer("Sprites", 3)
+	self.map:addCustomLayer("Sprites", 3)
+	local spriteLayer = self.map.layers["Sprites"]
 	function spriteLayer:draw()
 		for _, v in pairs(self.objects) do
 			v:draw()
@@ -52,6 +37,7 @@ function gameplay:enter(state)
 
 	-- On-screen objects
 	self.objects = require "assets.maps.test03"
+	self.objects.player	= Player(player)
 	self.objects_sorted = {}
 
 	self.show_debug_overlay = true
@@ -70,27 +56,85 @@ function gameplay:enter(state)
 			self.fading = false
 		end)
 	end)
+
+	self.input = {
+		{} -- player 1
+	}
+	Signal.register("input-pressed", function(self, player, mapping, value)
+		if not self.input[player] then
+			self.input[player] = {}
+		end
+		self.input[player][mapping] = value
+	end)
+	Signal.register("input-released", function(self, player, mapping)
+		if not self.input[player] then
+			print("wat")
+			self.input[player] = {}
+		end
+		self.input[player][mapping] = nil
+	end)
+end
+
+local function remap_keyboard(key)
+	local mappings = {
+		w		= "up",
+		s		= "down",
+		a		= "left",
+		d		= "right",
+		up		= "up",
+		down	= "down",
+		left	= "left",
+		right	= "right",
+
+		e		= "pickup",
+		[" "]	= "action",
+
+		escape	= "back"
+	}
+	return 1, mappings[key]
+end
+
+local function remap_joystick(joystick, button)
+	-- Ouya controller (on Android)
+	local mappings = {
+		[1]		= "up",
+		[2]		= "down",
+		[3]		= "left",
+		[4]		= "right",
+
+		[6]		= "action",
+		[9]		= "pickup",
+		[10]	= "menu",
+		[7]		= "back",
+
+		-- TODO: name this shit
+		[12] = "lb",
+		[14] = "lt",
+		[16] = "ls",
+		[13] = "rb",
+		[15] = "rt",
+		[17] = "rs"
+	}
+	-- player, mapped input
+	return 1, mappings[button]
 end
 
 function gameplay:update(dt)
+	--local old_dt = dt
+	--dt = 1/60
+	--print (old_dt, dt)
+	
 	local speed = 5.0
 
 	-- Shortcuts!
 	local o			= self.objects
-	local collision	= self.collisionMap
+	local collision	= self.map.collision.data
 	local velocity	= Vector(0, 0)
-	local pressed	= love.keyboard.isDown
-	local keys		= {
-		up		= pressed "up"    or pressed "w",
-		down	= pressed "down"  or pressed "s",
-		left	= pressed "left"  or pressed "a",
-		right	= pressed "right" or pressed "d"
-	}
 
-	if keys["left"]		then velocity.x = velocity.x - 1 end
-	if keys["right"]	then velocity.x = velocity.x + 1 end
-	if keys["up"]		then velocity.y = velocity.y - 1 end
-	if keys["down"]		then velocity.y = velocity.y + 1 end
+	if self.input[1]["left"]	then velocity.x = velocity.x - 1 end
+	if self.input[1]["right"]	then velocity.x = velocity.x + 1 end
+	if self.input[1]["up"]		then velocity.y = velocity.y - 1 end
+	if self.input[1]["down"]	then velocity.y = velocity.y + 1 end
 
 	for k, v in pairs{o.enemies, o.npcs, o.items} do
 		for k2, v2 in pairs(v) do
@@ -128,7 +172,7 @@ function gameplay:update(dt)
 		end
 	end
 
-	if pressed "e" and o.player.can_pickup then
+	if self.input[1]["pickup"] and o.player.can_pickup then
 		for k, v in pairs(items) do
 			o.player:equip_item("weapon", v)
 			v.in_range = false
@@ -158,7 +202,7 @@ function gameplay:update(dt)
 	end
 
 	-- TODO: directional hits
-	if pressed " " and o.player:attack() then
+	if self.input[1]["action"] and o.player:attack() then
 		for k, v in pairs(enemies) do
 			if not v.dead then
 				v:hit(o.player)
@@ -224,22 +268,14 @@ function gameplay:draw()
 	love.graphics.setColor(255, 255, 255, 255)
 	local tx = math.floor(player.position.x - size.x / 2)
 	local ty = math.floor(player.position.y - size.y / 2)
-	tx = -clamp(tx, 0, self.map.width * self.map.tileWidth - size.x)
-	ty = -clamp(ty, 0, self.map.height * self.map.tileHeight - size.y)
+	tx = -clamp(tx, 0, self.map.width * self.map.tilewidth - size.x)
+	ty = -clamp(ty, 0, self.map.height * self.map.tileheight - size.y)
 	love.graphics.translate(tx, ty)
-	self.map:setDrawRange(-tx, -ty, screen_width, screen_height)
+	self.map:setDrawRange(tx, ty, screen_width, screen_height)
 	self.map:draw()
 
 	if self.show_hitboxes then
-		-- Draw Collision Map
-		love.graphics.setColor(255,255,255,128)
-		for y=0, #self.collisionMap do
-			for x=0, #self.collisionMap[y] do
-				if self.collisionMap[y][x] == 1 then
-					love.graphics.rectangle("fill", x * 32, y * 32, 32, 32)
-				end
-			end
-		end
+		map:drawCollisionMap()
 	end
 
 	love.graphics.setColor(255,255,255,255)
@@ -255,7 +291,31 @@ function gameplay:draw()
 	end
 end
 
-function gameplay:keypressed(key, unicode)
+function gameplay:joystickpressed(joystick, button)
+	local player, input = remap_joystick(joystick, button)
+	if input then
+		Signal.emit("input-pressed", self, player, input, true)
+	end
+end
+
+function gameplay:joystickreleased(joystick, button)
+	local player, input = remap_joystick(joystick, button)
+	if input then
+		Signal.emit("input-released", self, player, input)
+	end
+end
+
+local everything = {}
+
+function gameplay:keypressed(key, isrepeat)
+	local player, input = remap_keyboard(key)
+
+	if input then
+		Signal.emit("input-pressed", self, player, input, true)
+	end
+
+	everything[key] = key
+
 	if key == "f3" then
 		self.show_debug_overlay = not self.show_debug_overlay
 	end
@@ -272,6 +332,51 @@ function gameplay:keypressed(key, unicode)
 			Gamestate.switch(require("states.title"))
 		end)
 	end
+	
+	if key == "`" then
+		local player = self.objects.player
+		local save = {
+			name			= player.name,
+			imagelocation	= player.imagelocation,
+			offset			= player.offset,
+			hitbox_start	= player.hitbox_start,
+			hitbox_end		= player.hitbox_end,
+			pos				= player.position:clone() / 32,
+			level			= player.level,
+			attack_range	= player.attack_range,
+			use_range		= player.use_range,
+			base_stats		= player.base_stats,
+			aptitudes		= player.aptitudes,
+			inventory		= {},
+			equipment		= {},
+		}
+		
+		for k,v in pairs(player.inventory) do
+			print(k,v) -- need to make the inventory work the same way as equipment.weapon
+						-- which also needs to be made more generic
+		end
+		
+		if player.equipment.weapon then
+			for k,v in pairs(ItemDB) do
+				if player.equipment.weapon.name == v.name then
+					save.equipment.weapon = k
+				end
+			end
+		end
+		
+		save = json.encode(save)
+		love.filesystem.write("save01", save)
+		print("Saved!")
+	end
+end
+
+function gameplay:keyreleased(key)
+	local player, input = remap_keyboard(key)
+	if input then
+		Signal.emit("input-released", self, player, input)
+	end
+
+	everything[key] = nil
 end
 
 function gameplay:draw_gui()
@@ -309,7 +414,7 @@ function gameplay:draw_gui()
 			("FPS: %d"):format(love.timer.getFPS()),
 			"H: Toggle Hitboxes"
 		}
-		local size = Vector(256, spacing*#lines+8)
+		local size = Vector(256, spacing*#lines+8 + spacing*#everything+8)
 		love.graphics.setColor(0, 0, 0, 150)
 		love.graphics.rectangle("fill", pos.x, pos.y, size.x, size.y)
 		love.graphics.setColor(255, 255, 255, 255)
@@ -317,6 +422,11 @@ function gameplay:draw_gui()
 		size = size - Vector(16, 16)
 		for k, v in ipairs(lines) do
 			love.graphics.print(v, pos.x, pos.y + (k-1) * spacing)
+		end
+		local i = 1
+		for k, _ in pairs(everything) do
+			love.graphics.print(k, pos.x, pos.y + (#lines + i -1) * spacing)
+			i = i + 1
 		end
 	end
 

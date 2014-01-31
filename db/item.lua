@@ -4,8 +4,8 @@ ItemDB = {
 	-- swords
 	sword = {
 		name			= "Sword",
-		image			= "assets/browserquest/sword2.png",
-		drop			= "assets/browserquest/item-sword2.png",
+		imagelocation	= "assets/browserquest/sword2.png",
+		droplocation	= "assets/browserquest/item-sword2.png",
 		type			= "sword",
 		req_level		= 1,
 		stats			= {
@@ -19,8 +19,8 @@ ItemDB = {
 	},
 	blue_sword = {
 		name			= "Blue Sword",
-		image			= "assets/browserquest/bluesword.png",
-		drop			= "assets/browserquest/item-bluesword.png",
+		imagelocation	= "assets/browserquest/bluesword.png",
+		droplocation	= "assets/browserquest/item-bluesword.png",
 		type			= "sword",
 		req_level		= 5,
 		stats			= {
@@ -34,8 +34,8 @@ ItemDB = {
 	},
 	red_sword = {
 		name			= "Red Sword",
-		image			= "assets/browserquest/redsword.png",
-		drop			= "assets/browserquest/item-redsword.png",
+		imagelocation	= "assets/browserquest/redsword.png",
+		droplocation	= "assets/browserquest/item-redsword.png",
 		type			= "sword",
 		req_level		= 11,
 		stats			= {
@@ -49,8 +49,8 @@ ItemDB = {
 	},
 	gold_sword = {
 		name			= "Golden Sword",
-		image			= "assets/browserquest/goldensword.png",
-		drop			= "assets/browserquest/item-goldensword.png",
+		imagelocation	= "assets/browserquest/goldensword.png",
+		droplocation	= "assets/browserquest/item-goldensword.png",
 		type			= "sword",
 		req_level		= 20,
 		stats			= {
@@ -65,8 +65,8 @@ ItemDB = {
 	-- axes
 	axe = {
 		name			= "Axe",
-		image			= "assets/browserquest/axe.png",
-		drop			= "assets/browserquest/item-axe.png",
+		imagelocation	= "assets/browserquest/axe.png",
+		droplocation	= "assets/browserquest/item-axe.png",
 		type			= "axe",
 		req_level		= 1,
 		stats			= {
@@ -80,8 +80,8 @@ ItemDB = {
 	},
 	morning_star = {
 		name			= "Morning Star",
-		image			= "assets/browserquest/morningstar.png",
-		drop			= "assets/browserquest/item-morningstar.png",
+		imagelocation	= "assets/browserquest/morningstar.png",
+		droplocation	= "assets/browserquest/item-morningstar.png",
 		type			= "axe",
 		req_level		= 5,
 		stats			= {

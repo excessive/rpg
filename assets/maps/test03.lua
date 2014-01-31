@@ -1,4 +1,3 @@
-require "player"
 require "enemy"
 require "npc"
 require "item"
@@ -12,7 +11,6 @@ require "db.terrain"
 local Vector = require "libs.hump.vector"
 
 local objects = {
-	player	= Player("assets/browserquest/goldenarmor.png", Vector(41, 58)),
 	enemies	= {
 		Enemy(EnemyDB.jeff,		Vector(38, 34)),
 		Enemy(EnemyDB.kevin,	Vector(22, 10)),

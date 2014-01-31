@@ -1,4 +1,6 @@
 require "character"
+require "item"
+require "db.item"
 local Class = require "libs.hump.class"
 local Vector = require "libs.hump.vector"
 local anim8 = require "libs.anim8"
@@ -6,33 +8,8 @@ local anim8 = require "libs.anim8"
 Player = Class {}
 Player:include(Character)
 
-function Player:init(image, pos)
-	local player = { -- this will eventually be pulled from a save file
-		name			= "Nepgear",
-		image			= image,
-		offset			= Vector(-16, -24),
-		hitbox_start	= Vector(0, 0),
-		hitbox_end		= Vector(0, 0),
-		level			= 1,
-		attack_range	= 1,
-		use_range		= 1.5,
-		base_stats		= {
-			hp		= 10,
-			attack	= 1,
-			exp		= 20,
-		},
-		aptitudes		= {
-			hp		= 1.2,
-			attack	= 1.5,
-			exp		= 2.0,
-		},
-		inventory		= {},
-		equipment		= {
-			weapon	= nil,
-		},
-	}
-
-	Character.init(self, player, pos)
+function Player:init(player)
+	Character.init(self, player)
 
 	self.level			= player.level
 	self.attack_range	= player.attack_range
@@ -40,7 +17,11 @@ function Player:init(image, pos)
 	self.base_stats		= player.base_stats
 	self.aptitudes		= player.aptitudes
 	self.inventory		= player.inventory
-	self.equipment		= player.equipment
+	self.equipment		= {}
+	
+	for k,v in pairs(player.equipment) do
+		self.equipment[k] = Item(ItemDB[v], player.pos)
+	end
 
 	self.can_pickup		= false
 	self:update_stats()
